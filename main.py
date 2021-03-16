@@ -1,5 +1,7 @@
+import time, machine, network, gc, threading, app.secrets as secrets
+from machine import UART
+
 def connectToWifiAndUpdate():
-    import time, machine, network, gc, app.secrets as secrets
     time.sleep(1)
     print('Memory free', gc.mem_free())
 
@@ -22,8 +24,17 @@ def connectToWifiAndUpdate():
         gc.collect()
 
 def startApp():
-    pass
-
-
+    event = threading.Event()
+    # uart1 = Jacuzzi
+    uart1 = UART(1, baudrate=2400, tx=4, rx=14)
+    # uart2 = remote
+    uart2 = UART(2, baudrate=2400, tx=15, rx=27)
+    while True:
+        print("uart1")
+        print(uart1.read())
+        print("uart2")
+        print(uart2.read())
+        event.wait(0.75)
+        
 connectToWifiAndUpdate()
 startApp()
