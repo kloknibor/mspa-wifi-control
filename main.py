@@ -71,25 +71,6 @@ class RunUartConnection():
 
                 self.uart2_remote.write(bytearray(jacuzzi_buffer))
 
-            # jacuzzi_buffer = bytearray("", 'utf-8')
-
-            # jacuzzi_buffer = self.uart1_jacuzzi.read()
-            # remote_buffer = self.uart2_remote.read()
-
-            # if jacuzzi_buffer is not "":
-            #    print("uart1")
-            #    print(jacuzzi_buffer)
-            #    if jacuzzi_buffer is not None:
-            #        print(ubinascii.hexlify(jacuzzi_buffer))
-            #        print(ubinascii.b2a_base64(jacuzzi_buffer))
-
-            # if remote_buffer is not "":
-            #    # print("uart2")
-            #     if remote_buffer is not None:
-            #         print(remote_buffer)
-            #         print(ubinascii.hexlify(remote_buffer))
-            #         print(ubinascii.b2a_base64(remote_buffer))
-
     def init_uart(self):
         # uart1 = Jacuzzi
         self.uart1_jacuzzi = UART(1, baudrate=9600, tx=14, rx=4, bits=8, stop=1, parity=None)
@@ -102,12 +83,28 @@ class RunUartConnection():
         self.uart1_jacuzzi.deinit()
         self.uart2_remote.deinit()
 
+    def get_temp(self):
+        pass
+        # \xa5\x06\x00\xab = 0.0 graden en heater en filter aan
+        # \xa5\x06\x01\xac = 0.5 graden en heater en filter aan
+        # \xa5\x06\x02\xad = 1.0 graden en heater en filter aan
+        # \xa5\x06\x03\xae = 1.5 graden
+        # \xa5\x06\x04\xaf = 2.0 graden
+        # \xa5\x06\x1e\xc9 = 15.0 graden
+        # \xa5\x06\x28\xd3 = 20.0 graden
+        # \xa5\x06\x3c\xe7 = 30.0 graden
+        # \xa5\x06\x50\xfb = 40.0 graden
+        # \xa5\x06\x54\xff = 42.0 graden
+        # \xa5\x06\x55\x00 = 42.5 graden
+        # \xa5\x06\x5f\x0A = 47.5 graden
+        # \xa5\x06\x65\x10 = 50.5 graden alles hoger dan dit is E0
+        # E1 = Tried to head/filter didn't get acknowledgement
 
 def startApp():
-    baud_9600 = RunUartConnection(baudrate=4800)
-    baud_9600.test_uart()
-    baud_9600.de_init_uart()
+    connect = RunUartConnection(baudrate=4800)
+    connect.test_uart()
+    # connect.de_init_uart()
 
 
-connectToWifiAndUpdate()
+#connectToWifiAndUpdate()
 startApp()
