@@ -55,19 +55,27 @@ class RunUartConnection():
                 # self.uart2_remote.readinto(self.remote_buffer)
                 remote_buffer = self.uart2_remote.readline()
 
-                # self.f.write(str(remote_buffer))
-                print("The remote bin value is: " + str(remote_buffer) + "\n" + str(bytearray(remote_buffer)))
-                print("The remote hex value is: " + str(ubinascii.hexlify(remote_buffer)))
-                print("The remote base64 value is: " + str(ubinascii.b2a_base64(remote_buffer)))
+                if str(remote_buffer) != "b\'\\xa5\\x01\\x00\\xa6\'" and str(
+                            remote_buffer) != "b\'\\xa5\\x02\\x00\\xa7\'" and str(
+                            remote_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
 
-                self.uart1_jacuzzi.write(remote_buffer)
+                    # self.f.write(str(remote_buffer))
+                    print("The remote bin value is: " + str(remote_buffer) + "\n" + str(bytearray(remote_buffer)))
+                    print("The remote hex value is: " + str(ubinascii.hexlify(remote_buffer)))
+                    print("The remote base64 value is: " + str(ubinascii.b2a_base64(remote_buffer)))
+
+                    self.uart1_jacuzzi.write(remote_buffer)
 
             if self.uart1_jacuzzi.any():
                 jacuzzi_buffer = self.uart1_jacuzzi.readline()
 
-                print("The jacuzzi bin value is: " + str(jacuzzi_buffer) + "\n" + str(bytearray(jacuzzi_buffer)))
-                print("The jacuzzi hex value is: " + str(ubinascii.hexlify(jacuzzi_buffer)))
-                print("The jacuzzi base64 value is: " + str(ubinascii.b2a_base64(jacuzzi_buffer)))
+                if str(jacuzzi_buffer) != "b\'\\xa5\\x01\\x00\\xa6\'" and str(
+                        jacuzzi_buffer) != "b\'\\xa5\\x02\\x00\\xa7\'" and str(
+                        jacuzzi_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
+
+                    print("The jacuzzi bin value is: " + str(jacuzzi_buffer) + "\n" + str(bytearray(jacuzzi_buffer)))
+                    print("The jacuzzi hex value is: " + str(ubinascii.hexlify(jacuzzi_buffer)))
+                    print("The jacuzzi base64 value is: " + str(ubinascii.b2a_base64(jacuzzi_buffer)))
 
                 self.uart2_remote.write(bytearray(jacuzzi_buffer))
 
@@ -99,6 +107,25 @@ class RunUartConnection():
         # \xa5\x06\x5f\x0A = 47.5 graden
         # \xa5\x06\x65\x10 = 50.5 graden alles hoger dan dit is E0
         # E1 = Tried to head/filter didn't get acknowledgement
+
+    def protocol(self):
+        pass
+        # bit1 = Adress?
+        # bit2 = function?  x06 = temprature in jacuzzi  x03 = Bubbels aan of uit  x02 = filter aan of uit
+        # bit3 = value for function
+        # bit4 = value of bit1 + bit2 + bit3
+
+    def bubbel_on(self, message):
+        pass
+        #bit2 = x03
+        #bit3 = x00 is off and x01 is on
+
+    def filter_on(self, message):
+        pass
+        #bit2 = x02
+        #bit3 = x00 is off and x01 is on
+
+
 
 def startApp():
     connect = RunUartConnection(baudrate=4800)
