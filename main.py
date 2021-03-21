@@ -26,26 +26,25 @@ def connectToWifiAndUpdate():
 
 
 class RunUartConnection():
-    def __init__(self, baudrate):
-        self.run = 0
-        self.baudrate = baudrate
-        self.remote_buffer = bytearray(26)
+    def __init__(self):
+        # keep track of messages
+        self.last_message_x01 = []
+        self.last_message_x02 = []
+        self.last_message_x03 = []
+        self.last_message_x04 = []
+        self.last_message_x05 = []
+        self.last_message_x06 = []
+
+        # current states
+        self.jacuzzi_temp = 0
+        self.bubbel_state_on = False
+        self.heater_state_on = False
+        self.filter_state_on = False
+
 
         # init UART
         self.init_uart()
 
-    def forward_jacuzzi_to_remote(self):
-        while self.run < 10:
-            if self.uart1_jacuzzi.any():
-                # self.uart2_remote.readinto(self.remote_buffer)
-                remote_buffer = self.uart1_jacuzzi.readline()
-                print("The bin value is: " + str(remote_buffer))
-                print("The hex value is: " + str(ubinascii.hexlify(remote_buffer)))
-                print("The base64 value is: " + str(ubinascii.b2a_base64(remote_buffer)))
-                array_buffer = bytearray(remote_buffer)
-                self.uart2_remote.write(array_buffer)
-
-                self.run += 1
 
     def test_uart(self):
         while True:
@@ -53,27 +52,10 @@ class RunUartConnection():
                 # self.uart2_remote.readinto(self.remote_buffer)
                 remote_buffer = self.uart2_remote.readline()
                 self.process_message(remote_buffer)
-
-                if str(remote_buffer) != "b\'\\xa5\\x01\\x00\\xa6\'" and str(
-                        remote_buffer) != "b\'\\xa5\\x02\\x00\\xa7\'" and str(
-                    remote_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
-                    # self.f.write(str(remote_buffer))
-                    print("The remote bin value is: " + str(remote_buffer) + "\n" + str(bytearray(remote_buffer)))
-                    print("The remote hex value is: " + str(ubinascii.hexlify(remote_buffer)))
-                    print("The remote base64 value is: " + str(ubinascii.b2a_base64(remote_buffer)))
-
-                    self.uart1_jacuzzi.write(remote_buffer)
+                self.uart1_jacuzzi.write(bytearray(remote_buffer))
 
             if self.uart1_jacuzzi.any():
                 jacuzzi_buffer = self.uart1_jacuzzi.readline()
-
-                if str(jacuzzi_buffer) != "b\'\\xa5\\x01\\x00\\xa6\'" and str(
-                        jacuzzi_buffer) != "b\'\\xa5\\x02\\x00\\xa7\'" and str(
-                    jacuzzi_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
-                    print("The jacuzzi bin value is: " + str(jacuzzi_buffer) + "\n" + str(bytearray(jacuzzi_buffer)))
-                    print("The jacuzzi hex value is: " + str(ubinascii.hexlify(jacuzzi_buffer)))
-                    print("The jacuzzi base64 value is: " + str(ubinascii.b2a_base64(jacuzzi_buffer)))
-
                 self.uart2_remote.write(bytearray(jacuzzi_buffer))
 
     def init_uart(self):
@@ -90,37 +72,28 @@ class RunUartConnection():
 
     def get_temp(self):
         pass
-        # \xa5\x06\x00\xab = 0.0 graden en heater en filter aan
-        # \xa5\x06\x01\xac = 0.5 graden en heater en filter aan
-        # \xa5\x06\x02\xad = 1.0 graden en heater en filter aan
-        # \xa5\x06\x03\xae = 1.5 graden
-        # \xa5\x06\x04\xaf = 2.0 graden
-        # \xa5\x06\x1e\xc9 = 15.0 graden
-        # \xa5\x06\x28\xd3 = 20.0 graden
-        # \xa5\x06\x3c\xe7 = 30.0 graden
-        # \xa5\x06\x50\xfb = 40.0 graden
-        # \xa5\x06\x54\xff = 42.0 graden
-        # \xa5\x06\x55\x00 = 42.5 graden
-        # \xa5\x06\x5f\x0A = 47.5 graden
-        # \xa5\x06\x65\x10 = 50.5 graden alles hoger dan dit is E0
-        # E1 = Tried to head/filter didn't get acknowledgement
 
-    def protocol(self):
+    def get_bubbel_state(self):
         pass
-        # bit1 = Adress?
-        # bit2 = function?  x06 = temprature in jacuzzi  x03 = Bubbels aan of uit  x02 = filter aan of uit
-        # bit3 = value for function
-        # bit4 = value of bit1 + bit2 + bit3
 
-    def bubbel_on(self, message):
+    def get_heater_state(self):
         pass
-        # bit2 = x03
-        # bit3 = x00 is off and x01 is on
 
-    def filter_on(self, message):
+    def get_filter_state(self):
         pass
-        # bit2 = x02
-        # bit3 = x00 is off and x01 is on
+
+    def set_bubbel(self):
+        pass
+
+    def set_filter(self):
+        pass
+
+    def set_heather(self):
+        pass
+
+    def set_temp(self):
+        pass
+
 
     def split_message_to_array(self, message):
         message_str = str(message)
@@ -129,7 +102,7 @@ class RunUartConnection():
         bytes = main_msg.split("\\")
 
         # check nr of messages
-        print(len(bytes))
+        # print(len(bytes))
         single_message = []
         messages = []
 
@@ -146,7 +119,7 @@ class RunUartConnection():
                 x = 0
                 single_message = []
 
-        print(messages)
+        # print(messages)
         return messages
 
     def process_message(self, message):
@@ -162,29 +135,64 @@ class RunUartConnection():
                 hex_val4 = message[3].replace('x', '')
                 sum_msg = int(hex_val1, 16) + int(hex_val2, 16) + int(hex_val3, 16)
                 check_msg = int(hex_val4, 16)
-                print(str(sum_msg) + "    " + str(check_msg))
 
-        # if bytes[2] == "x01":
-        #    pass
-        # filter on
-        # if bytes[2] == "x02":
-        #    pass
-        # bubbel on
-        # if bytes[2] == "x03":
-        #    pass
-        # if bytes[2] == "x04":
-        #    pass
-        # if bytes[2] == "x05":
-        #    pass
-        # temprature from jacuzzi
-        # if bytes[2] == "x06":
-        #    pass
+                # verify if message is complete
+                if sum_msg == check_msg:
+                    if message[1] == "x01":
+                        if self.last_message_x01 != message:
+                            self.last_message_x01 = message
+                            print("still unkown message : " + str(message))
+                    # filter aan x02
+                    elif message[1] == "x02":
+                        if self.last_message_x02 != message:
+                            self.last_message_x02 = message
+                            if message[2] == "x00":
+                                print(" Filter en heater zijn uit " + str(message))
+                            elif message[2] == "x01":
+                                print(" Filter en wellicht heater is aan" + str(message))
+                            else:
+                                print(" unkown filter state " + str(message))
+
+                    # bubbels aan x03
+                    elif message[1] == "x03":
+                        if self.last_message_x03 != message:
+                            self.last_message_x03 = message
+                            if message[2] == "x00":
+                                print(" Bubbels zijn uit ")
+                            elif message[2] == "x01":
+                                print(" Bubbels zijn aan")
+                            else:
+                                print(" unkown bubbel state " + str(message))
+                    elif message[1] == "x04":
+                        if self.last_message_x04 != message:
+                            self.last_message_x04 = message
+                            temp_val = message[2].replace('x', '')
+                            # maximum setting seems to be 31! Bug in Remote? Lie in specs?
+                            print(
+                                "The temprature on remote is set to : " + str(int(temp_val, 16)) + "   " + str(message))
+                    elif message[1] == "x05":
+                        if self.last_message_x05 != message:
+                            self.last_message_x05 = message
+                            print("still unkown message : " + str(message))
+                    # temp van jacuzzi x06
+                    elif message[1] == "x06":
+                        if self.last_message_x06 != message:
+                            self.last_message_x06 = message
+                            temp_hex_jac = message[2].replace('x', '')
+                            temp_jac = ((int(temp_hex_jac, 16)) * 10) / 2
+                            print("The jacuzzi temp is : " + str(temp_jac) + " devide by 10 ")
+
+
+                    else:
+                        print("still unkown message : " + str(message))
+                else:
+                    print("verify failed, mesages wrong " + str(message))
 
 
 def startApp():
-    connect = RunUartConnection(baudrate=4800)
+    connect = RunUartConnection()
     connect.test_uart()
-    # connect.de_init_uart()
+
 
 
 # connectToWifiAndUpdate()
