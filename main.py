@@ -34,7 +34,6 @@ class RunUartConnection():
         # init UART
         self.init_uart()
 
-
     def forward_jacuzzi_to_remote(self):
         while self.run < 10:
             if self.uart1_jacuzzi.any():
@@ -48,17 +47,16 @@ class RunUartConnection():
 
                 self.run += 1
 
-
     def test_uart(self):
         while True:
             if self.uart2_remote.any():
                 # self.uart2_remote.readinto(self.remote_buffer)
                 remote_buffer = self.uart2_remote.readline()
+                self.process_message(remote_buffer)
 
                 if str(remote_buffer) != "b\'\\xa5\\x01\\x00\\xa6\'" and str(
-                            remote_buffer) != "b\'\\xa5\\x02\\x00\\xa7\'" and str(
-                            remote_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
-
+                        remote_buffer) != "b\'\\xa5\\x02\\x00\\xa7\'" and str(
+                    remote_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
                     # self.f.write(str(remote_buffer))
                     print("The remote bin value is: " + str(remote_buffer) + "\n" + str(bytearray(remote_buffer)))
                     print("The remote hex value is: " + str(ubinascii.hexlify(remote_buffer)))
@@ -71,8 +69,7 @@ class RunUartConnection():
 
                 if str(jacuzzi_buffer) != "b\'\\xa5\\x01\\x00\\xa6\'" and str(
                         jacuzzi_buffer) != "b\'\\xa5\\x02\\x00\\xa7\'" and str(
-                        jacuzzi_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
-
+                    jacuzzi_buffer) != "b\'\\xa5\\x03\\x00\\xa8\'":
                     print("The jacuzzi bin value is: " + str(jacuzzi_buffer) + "\n" + str(bytearray(jacuzzi_buffer)))
                     print("The jacuzzi hex value is: " + str(ubinascii.hexlify(jacuzzi_buffer)))
                     print("The jacuzzi base64 value is: " + str(ubinascii.b2a_base64(jacuzzi_buffer)))
@@ -117,14 +114,71 @@ class RunUartConnection():
 
     def bubbel_on(self, message):
         pass
-        #bit2 = x03
-        #bit3 = x00 is off and x01 is on
+        # bit2 = x03
+        # bit3 = x00 is off and x01 is on
 
     def filter_on(self, message):
         pass
-        #bit2 = x02
-        #bit3 = x00 is off and x01 is on
+        # bit2 = x02
+        # bit3 = x00 is off and x01 is on
 
+    def split_message_to_array(self, message):
+        message_str = str(message)
+        msg = message_str.split("\'")
+        main_msg = msg[1]
+        bytes = main_msg.split("\\")
+
+        # check nr of messages
+        print(len(bytes))
+        single_message = []
+        messages = []
+
+        i = 1
+        x = 0
+        while i < len(bytes):
+
+            single_message.append(bytes[i])
+            x += 1
+            i += 1
+
+            if x == 4:
+                messages.append(single_message)
+                x = 0
+                single_message = []
+
+        print(messages)
+        return messages
+
+    def process_message(self, message):
+        # split message to usefull array
+        messages_array = self.split_message_to_array(message=message)
+
+        for message in messages_array:
+            # check message
+            if message[0] == 'xa5':
+                hex_val1 = message[0].replace('x', '')
+                hex_val2 = message[1].replace('x', '')
+                hex_val3 = message[2].replace('x', '')
+                hex_val4 = message[3].replace('x', '')
+                sum_msg = int(hex_val1, 16) + int(hex_val2, 16) + int(hex_val3, 16)
+                check_msg = int(hex_val4, 16)
+                print(str(sum_msg) + "    " + str(check_msg))
+
+        # if bytes[2] == "x01":
+        #    pass
+        # filter on
+        # if bytes[2] == "x02":
+        #    pass
+        # bubbel on
+        # if bytes[2] == "x03":
+        #    pass
+        # if bytes[2] == "x04":
+        #    pass
+        # if bytes[2] == "x05":
+        #    pass
+        # temprature from jacuzzi
+        # if bytes[2] == "x06":
+        #    pass
 
 
 def startApp():
@@ -133,5 +187,5 @@ def startApp():
     # connect.de_init_uart()
 
 
-#connectToWifiAndUpdate()
+# connectToWifiAndUpdate()
 startApp()
