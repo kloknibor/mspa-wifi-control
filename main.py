@@ -71,27 +71,40 @@ class RunUartConnection():
         self.uart2_remote.deinit()
 
     def get_temp(self):
-        pass
+        return self.jacuzzi_temp
 
     def get_bubbel_state(self):
-        pass
+        return self.bubbel_state_on
 
     def get_heater_state(self):
-        pass
+        return self.heater_state_on
 
     def get_filter_state(self):
+        return self.filter_state_on
+
+    def set_bubbel_on(self):
+        self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x01\xa9'))
+
+    def set_filter_on(self):
+        self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x01\xa8'))
+
+    def set_heather_on(self):
         pass
 
-    def set_bubbel(self):
+    def set_bubbel_off(self):
+        self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x00\xa8'))
+
+    def set_filter_off(self):
+        self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x00\xa7'))
+
+    def set_heather_off(self):
         pass
 
-    def set_filter(self):
-        pass
-
-    def set_heather(self):
-        pass
-
-    def set_temp(self):
+    def set_temp(self, temp):
+        # temp -> hex
+        # Controle nr uitrekenen
+        # bytestring van maken
+        # sturen : self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x00\xa7'))
         pass
 
 
@@ -149,7 +162,7 @@ class RunUartConnection():
                             if message[2] == "x00":
                                 print(" Filter en heater zijn uit " + str(message))
                             elif message[2] == "x01":
-                                print(" Filter en wellicht heater is aan" + str(message))
+                                print(" Filter is aan" + str(message))
                             else:
                                 print(" unkown filter state " + str(message))
 
