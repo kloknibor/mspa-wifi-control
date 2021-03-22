@@ -34,12 +34,16 @@ class RunUartConnection():
         self.last_message_x04 = []
         self.last_message_x05 = []
         self.last_message_x06 = []
+        self.last_message_x07 = []
+        self.last_message_x08 = []
+        self.last_message_r = []
 
         # current states
         self.jacuzzi_temp = 0
         self.bubbel_state_on = False
         self.heater_state_on = False
         self.filter_state_on = False
+        self.heating_temp = 0
 
 
         # init UART
@@ -73,6 +77,9 @@ class RunUartConnection():
     def get_temp(self):
         return self.jacuzzi_temp
 
+    def get_heating_temp(self):
+        return self.heating_temp
+
     def get_bubbel_state(self):
         return self.bubbel_state_on
 
@@ -84,23 +91,27 @@ class RunUartConnection():
 
     def set_bubbel_on(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x01\xa9'))
+        self.bubbel_state_on = True
 
     def set_filter_on(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x01\xa8'))
+        self.bubbel_state_on = True
 
     def set_heather_on(self):
-        pass
+        self.heater_state_on = True
 
     def set_bubbel_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x00\xa8'))
+        self.bubbel_state_on = False
 
     def set_filter_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x00\xa7'))
+        self.filter_state_on = False
 
     def set_heather_off(self):
-        pass
+        self.heater_state_on = False
 
-    def set_temp(self, temp):
+    def set_heating_temp(self, temp):
         # temp -> hex
         # Controle nr uitrekenen
         # bytestring van maken
@@ -142,12 +153,16 @@ class RunUartConnection():
         for message in messages_array:
             # check message
             if message[0] == 'xa5':
-                hex_val1 = message[0].replace('x', '')
-                hex_val2 = message[1].replace('x', '')
-                hex_val3 = message[2].replace('x', '')
-                hex_val4 = message[3].replace('x', '')
-                sum_msg = int(hex_val1, 16) + int(hex_val2, 16) + int(hex_val3, 16)
-                check_msg = int(hex_val4, 16)
+                if message[1] == 'r':
+                    sum_msg = 1
+                    check_msg = 1
+                else:
+                    hex_val1 = message[0].replace('x', '')
+                    hex_val2 = message[1].replace('x', '')
+                    hex_val3 = message[2].replace('x', '')
+                    hex_val4 = message[3].replace('x', '')
+                    sum_msg = int(hex_val1, 16) + int(hex_val2, 16) + int(hex_val3, 16)
+                    check_msg = int(hex_val4, 16)
 
                 # verify if message is complete
                 if sum_msg == check_msg:
@@ -160,8 +175,10 @@ class RunUartConnection():
                         if self.last_message_x02 != message:
                             self.last_message_x02 = message
                             if message[2] == "x00":
-                                print(" Filter en heater zijn uit " + str(message))
+                                print(" Filter is uit " + str(message))
+                                self.filter_state_on = False
                             elif message[2] == "x01":
+                                self.filter_state_on = True
                                 print(" Filter is aan" + str(message))
                             else:
                                 print(" unkown filter state " + str(message))
@@ -172,7 +189,9 @@ class RunUartConnection():
                             self.last_message_x03 = message
                             if message[2] == "x00":
                                 print(" Bubbels zijn uit ")
+                                self.bubbel_state_on = False
                             elif message[2] == "x01":
+                                self.bubbel_state_on = True
                                 print(" Bubbels zijn aan")
                             else:
                                 print(" unkown bubbel state " + str(message))
@@ -183,6 +202,7 @@ class RunUartConnection():
                             # maximum setting seems to be 31! Bug in Remote? Lie in specs?
                             print(
                                 "The temprature on remote is set to : " + str(int(temp_val, 16)) + "   " + str(message))
+                            self.jacuzzi_temp = int(temp_val, 16)
                     elif message[1] == "x05":
                         if self.last_message_x05 != message:
                             self.last_message_x05 = message
@@ -194,6 +214,18 @@ class RunUartConnection():
                             temp_hex_jac = message[2].replace('x', '')
                             temp_jac = ((int(temp_hex_jac, 16)) * 10) / 2
                             print("The jacuzzi temp is : " + str(temp_jac) + " devide by 10 ")
+                    elif message[1] == "x07":
+                        if self.last_message_x07 != message:
+                            self.last_message_x07 = message
+                            print("still unkown message (bit = x07): " + str(message))
+                    elif message[1] == "x08":
+                        if self.last_message_x08 != message:
+                            self.last_message_x08 = message
+                            print("still unkown message (bit = x08): " + str(message))
+                    if message[1] == "r":
+                        if self.last_message_r != message:
+                            self.last_message_r = message
+                            print("still unkown message (bit = r): " + str(message))
 
 
                     else:
