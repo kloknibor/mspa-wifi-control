@@ -1,2 +1,4 @@
 /app/secrets.py
 .idea/
+venv/
+webrepl_cfg.py
