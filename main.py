@@ -4,8 +4,36 @@ import machine
 import network
 import time
 import socket
+import picoweb
+import ulogging as logging
+
+app = picoweb.WebApp(__name__)
+
 
 from machine import UART
+
+@app.route("/")
+def index(req, resp):
+    yield from picoweb.start_response(resp)
+    yield from resp.awrite(b"Static image: <img src='static/logo.png'><br />")
+    yield from resp.awrite(b"Dynamic image: <img src='dyna-logo.png'><br />")
+
+@app.route("/dyna-logo.png")
+def squares(req, resp):
+    yield from picoweb.start_response(resp, "image/png")
+    yield from resp.awrite(
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x000\x00\x00\x000\x01\x03\x00\x00\x00m\xcck"
+        b"\xc4\x00\x00\x00\x06PLTE\xff\xff\xff\x00\x00\x00U\xc2\xd3~\x00\x00\x00\xd2IDAT\x18\xd3c`"
+        b"\x80\x01\xc6\x06\x08-\x00\xe1u\x80)\xa6\x040\xc5\x12\x00\xa18\xc0\x14+\x84\xe2\xf5\x00Sr"
+        b"\x10J~\x0e\x98\xb2\xff\x83\x85\xb2\x86P\xd2\x15\x10\x95\x10\x8a\xff\x07\x98b\xff\x80L\xb1"
+        b"\xa5\x83-?\x95\xff\x00$\xf6\xeb\x7f\x01\xc8\x9eo\x7f@\x92r)\x9fA\x94\xfc\xc4\xf3/\x80\x94"
+        b"\xf8\xdb\xff'@F\x1e\xfcg\x01\xa4\xac\x1e^\xaa\x01R6\xb1\x8f\xff\x01);\xc7\xff \xca\xfe\xe1"
+        b"\xff_@\xea\xff\xa7\xff\x9f\x81F\xfe\xfe\x932\xbd\x81\x81\xb16\xf0\xa4\x1d\xd0\xa3\xf3\xfb"
+        b"\xba\x7f\x02\x05\x97\xff\xff\xff\x14(\x98\xf9\xff\xff\xb4\x06\x06\xa6\xa8\xfa\x7fQ\x0e\x0c"
+        b"\x0c\xd3\xe6\xff\xcc\x04\xeaS]\xfet\t\x90\xe2\xcc\x9c6\x01\x14\x10Q )\x06\x86\xe9/\xc1\xee"
+        b"T]\x02\xa68\x04\x18\xd0\x00\x00\xcb4H\xa2\x8c\xbd\xc0j\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+
 
 def connectToWifiAndUpdate():
     time.sleep(1)
@@ -30,7 +58,7 @@ def connectToWifiAndUpdate():
         gc.collect()
 
 
-class RunUartConnection():
+class RunApp():
     def __init__(self):
         # keep track of messages
         self.last_message_x01 = []
@@ -56,10 +84,10 @@ class RunUartConnection():
         self.uart1_jacuzzi = UART(1, baudrate=9600, tx=14, rx=4, bits=8, stop=1, parity=None)
         self.uart2_remote = UART(2, baudrate=9600, tx=15, rx=27, bits=8, stop=1, parity=None)
 
-    def test_uart(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(('', 80))
-        s.listen(5)
+    def start_uart(self):
+        #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #s.bind(('', 80))
+        #s.listen(5)
 
         while True:
             if self.uart2_remote.any():
@@ -72,11 +100,12 @@ class RunUartConnection():
                 jacuzzi_buffer = self.uart1_jacuzzi.readline()
                 self.process_message(jacuzzi_buffer, "jacuzzi")
                 self.uart2_remote.write(bytearray(jacuzzi_buffer))
-            conn, addr = s.accept()
-            print('Got a connection from %s' % str(addr))
-            request = conn.recv(1024)
-            request = str(request)
-            print('Content = %s' % request)
+
+           # conn, addr = s.accept()
+           # print('Got a connection from %s' % str(addr))
+           #request = conn.recv(1024)
+            #request = str(request)
+            #print('Content = %s' % request)
 
             jacuzzi_heater_on = request.find('/?jacuzzi_heater_on')
             jacuzzi_heater_off = request.find('/?jacuzzi_heater_off')
@@ -292,7 +321,6 @@ class RunUartConnection():
                             self.last_message_x0b = message
                             print("still unkown message (bit = x0b): " + str(message) + str(sender))
 
-
                     else:
                         print("still unkown message : " + str(message) + str(sender))
                         print("bit 2 was:" + message[1])
@@ -409,8 +437,10 @@ class RunUartConnection():
         return html
 
 def startApp():
-    connect = RunUartConnection()
-    connect.test_uart()
+    logging.basicConfig(level=logging.INFO)
+    app.run(debug=True)
+    connect = RunApp()
+    connect.start_uart()
 
 
 connectToWifiAndUpdate()
