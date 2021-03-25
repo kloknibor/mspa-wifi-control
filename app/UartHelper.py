@@ -17,9 +17,9 @@ class UartConnection():
 
         # current states
         self.jacuzzi_current_temp = 0
-        self.bubbel_state_on = False
-        self.heater_state_on = False
-        self.filter_state_on = False
+        self.remote_bubbel_state_on = False
+        self.remote_heater_state_on = False
+        self.remote_filter_state_on = False
         self.remote_temp = 0
         self.jacuzzi_filter_state_str = ""
 
@@ -53,35 +53,35 @@ class UartConnection():
         return self.remote_temp
 
     def get_bubbel_state(self):
-        return self.bubbel_state_on
+        return self.remote_bubbel_state_on
 
     def get_heater_state(self):
-        return self.heater_state_on
+        return self.remote_heater_state_on
 
     def get_filter_state(self):
-        return self.filter_state_on
+        return self.remote_filter_state_on
 
     def set_bubbel_on(self):
         self.uart2_remote.write(bytearray(b'\xa5\x03\x01\xa9'))
-        self.bubbel_state_on = True
+        self.remote_bubbel_state_on = True
 
     def set_filter_on(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x01\xa8'))
-        self.filter_state_on = True
+        self.remote_filter_state_on = True
 
     def set_heather_on(self):
-        self.heater_state_on = True
+        self.remote_heater_state_on = True
 
     def set_bubbel_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x00\xa8'))
-        self.bubbel_state_on = False
+        self.remote_bubbel_state_on = False
 
     def set_filter_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x00\xa7'))
-        self.filter_state_on = False
+        self.remote_filter_state_on = False
 
     def set_heather_off(self):
-        self.heater_state_on = False
+        self.remote_heater_state_on = False
 
     def set_heating_temp(self, temp):
         # temp -> hex
@@ -91,9 +91,9 @@ class UartConnection():
         pass
 
     def return_status(self):
-        status = {'heater_state_on': self.heater_state_on,
-                  'filter_state_on': self.filter_state_on,
-                  'bubbel_state_on': self.bubbel_state_on,
+        status = {'remote_heater_state_on': self.remote_heater_state_on,
+                  'remote_filter_state_on': self.remote_filter_state_on,
+                  'remote_bubbel_state_on': self.remote_bubbel_state_on,
                   'remote_temp': self.remote_temp,
                   'x05_message': self.last_message_x05,
                   'jacuzzi_current_temp': self.jacuzzi_current_temp,
@@ -149,8 +149,7 @@ class UartConnection():
                         sum_msg = int(hex_val1, 16) + int(hex_val2, 16) + int(hex_val3, 16)
                         check_msg = int(hex_val4, 16)
                     except ValueError:
-                        print("failed to process message, message was : " + message)
-                        print_exception()
+                        print("failed to process message, message was : " + str(message))
                         sum_msg=1
                         check_msg=1
 
@@ -161,9 +160,9 @@ class UartConnection():
                             self.last_message_x01 = message
                             if message[2] == "x00":
                                 print(" Heater is uit " + str(message) + str(sender))
-                                self.filter_state_on = False
+                                self.remote_filter_state_on = False
                             elif message[2] == "x01":
-                                self.filter_state_on = True
+                                self.remote_filter_state_on = True
                                 print(" Heater is aan" + str(message) + str(sender))
                             else:
                                 print(" unkown Heater state " + str(message) + str(sender))
@@ -173,9 +172,9 @@ class UartConnection():
                             self.last_message_x02 = message
                             if message[2] == "x00":
                                 print(" Filter is uit " + str(message) + str(sender))
-                                self.filter_state_on = False
+                                self.remote_filter_state_on = False
                             elif message[2] == "x01":
-                                self.filter_state_on = True
+                                self.remote_filter_state_on = True
                                 print(" Filter is aan" + str(message) + str(sender))
                             else:
                                 print(" unkown filter state " + str(message) + str(sender))
@@ -186,9 +185,9 @@ class UartConnection():
                             self.last_message_x03 = message
                             if message[2] == "x00":
                                 print(" Bubbels zijn uit " + str(sender))
-                                self.bubbel_state_on = False
+                                self.remote_bubbel_state_on = False
                             elif message[2] == "x01":
-                                self.bubbel_state_on = True
+                                self.remote_bubbel_state_on = True
                                 print(" Bubbels zijn aan" + str(sender))
                             else:
                                 print(" unkown bubbel state " + str(message) + str(sender))
@@ -200,7 +199,7 @@ class UartConnection():
                             print(
                                 "The temprature on remote is set to : " + str(int(temp_val, 16)) + "   " + str(
                                     message) + str(sender))
-                            self.jacuzzi_current_temp = int(temp_val, 16)
+                            self.remote_temp = int(temp_val, 16)
                     elif message[1] == "x05":
                         if self.last_message_x05 != message:
                             self.last_message_x05 = message
@@ -212,6 +211,7 @@ class UartConnection():
                             temp_hex_jac = message[2].replace('x', '')
                             temp_jac = ((int(temp_hex_jac, 16)) * 10) / 2
                             print("The jacuzzi temp is : " + str(temp_jac) + " devide by 10 " + str(sender))
+                            self.jacuzzi_current_temp = temp_jac
                     elif message[1] == "x07":
                         if self.last_message_x07 != message:
                             self.last_message_x07 = message
