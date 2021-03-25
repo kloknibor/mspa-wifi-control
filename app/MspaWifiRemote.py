@@ -1,9 +1,8 @@
 import select
 from .UartHelper import UartConnection
 from .WebComponent import WebComponent
-from MqttComponent import MqttClass
+from .MqttComp import MqttClass
 import uasyncio as asyncio
-import secrets
 
 
 class Main():
@@ -11,21 +10,20 @@ class Main():
         self.uart_status = {}
         self.uart_interface = UartConnection()
         self.web = WebComponent()
-        self.mqtt = MqttClass
-
-        self.config = {'subs_cb': self.mqtt.set_state,
-                       'connect_coro': self.mqtt.conn_han,
-                       'server': secrets.MQTT_SERVER,
-                       'user': secrets.MQTT_USERNAME,
-                       'password': secrets.MQTT_PASSWORD}
+        self.mqtt = MqttClass()
 
     async def loop(self):
-
+        n = 0
+        self.mqtt.start_connection()
         # get UART data
         while True:
             uart_connection_task = asyncio.create_task(self.uart_interface.check_uart())
+            mqtt_publish_task = asyncio.create_task(self.mqtt.main(n))
+            #mqtt_result = await mqtt_publish_task
             current_uart_state = await uart_connection_task
             print(current_uart_state)
+            #print(mqtt_result)
+            n += 1
             await asyncio.sleep(1)
 
 
