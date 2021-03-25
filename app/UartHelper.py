@@ -1,4 +1,5 @@
 from machine import UART
+import uasyncio as asyncio
 
 class UartConnection():
     def __init__(self):
@@ -26,7 +27,7 @@ class UartConnection():
         self.uart1_jacuzzi = UART(1, baudrate=9600, tx=14, rx=4, bits=8, stop=1, parity=None)
         self.uart2_remote = UART(2, baudrate=9600, tx=15, rx=27, bits=8, stop=1, parity=None)
 
-    def check_uart(self):
+    async def check_uart(self):
         if self.uart2_remote.any():
             remote_buffer = self.uart2_remote.readline()
             self.process_message(remote_buffer, "remote")
@@ -36,6 +37,10 @@ class UartConnection():
             jacuzzi_buffer = self.uart1_jacuzzi.readline()
             self.process_message(jacuzzi_buffer, "jacuzzi")
             self.uart2_remote.write(bytearray(jacuzzi_buffer))
+
+        status = self.return_status()
+        return status
+
 
     def de_init_uart(self):
         self.uart1_jacuzzi.deinit()

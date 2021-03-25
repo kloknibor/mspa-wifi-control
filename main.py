@@ -4,6 +4,7 @@ import machine
 import network
 import time
 import app.MspaWifiRemote as MainLoop
+import uasyncio as asyncio
 
 
 def connectToWifiAndUpdate():
@@ -31,7 +32,7 @@ def connectToWifiAndUpdate():
 
 def startApp():
     main = MainLoop.Main()
-    main.loop()
+    asyncio.run(main.loop())
 
 
 connectToWifiAndUpdate()

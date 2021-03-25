@@ -3,9 +3,9 @@ import socket
 class WebComponent:
     def __init__(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setblocking(False)
         self.socket.bind(('', 80))
-        self.socket.listen(5)
+        self.socket.settimeout(0)
+        self.socket.listen(1)
 
     def check_input(self, request):
         jacuzzi_heater_on = request.find('/?jacuzzi_heater_on')
@@ -21,10 +21,12 @@ class WebComponent:
     def webpage_response(self, conn, uart_status):
         print("got to webpage response")
         response = self.web_page(uart_status)
+        print('servering data')
         conn.send('HTTP/1.1 200 OK\n')
         conn.send('Content-Type: text/html\n')
         conn.send('Connection: close\n\n')
         conn.sendall(response)
+        print("print right before close call")
         conn.close()
 
     def web_page(self, uart_status):
