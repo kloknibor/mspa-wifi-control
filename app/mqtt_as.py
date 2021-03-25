@@ -534,6 +534,7 @@ class MQTTClient(MQTT_base):
         asyncio.create_task(self._keep_alive())
         if self.DEBUG:
             asyncio.create_task(self._memory())
+        print(self)
         asyncio.create_task(self._connect_handler(self))  # User handler.
 
     # Launched by .connect(). Runs until connectivity fails. Checks for and

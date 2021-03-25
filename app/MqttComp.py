@@ -13,31 +13,41 @@ class MqttClass():
         self.config['server'] = secrets.MQTT_SERVER
         self.config['user'] = secrets.MQTT_USERNAME
         self.config['password'] = secrets.MQTT_PASSWORD
+        self.config['ssid'] = secrets.WIFI_SSID
+        self.config['wifi_pw'] = secrets.WIFI_PASSWORD
+
+        print(" connect coro : ")
+        print(self.config['connect_coro'])
 
         print(self.config)
 
         MQTTClient.DEBUG = True  # Optional: print diagnostic messages
         self.client = MQTTClient(self.config)
 
-
-    async def conn_han(self):
-        await self.client.subscribe('foo_topic', 1)
+    @staticmethod
+    async def conn_han(client):
+        await client.subscribe('foo_topic', 1)
 
     def set_state(self, topic, msg, retained):
-        print("topic : " + topic + " message ; " + msg + " retained : " + retained)
+        print("topic : " + str(topic) + " message ; " + str(msg) + " retained : " + str(retained))
 
-    def publish_states(self, topic, msg, retained):
-        print("topic : " + topic + " message ; " + msg + " retained : " + retained)
+    def publish_states(self, states):
+        await self.client.publish('x05_message', '{}'.format(states['x05_message']), qos = 1)
+        await self.client.publish('x0b_message', '{}'.format(states['x0b_message']), qos=1)
+        await self.client.publish('heater_state_on', '{}'.format(states['heater_state_on']), qos=1)
+        await self.client.publish('x07_message', '{}'.format(states['x07_message']), qos=1)
+        await self.client.publish('remote_temp', '{}'.format(states['remote_temp']), qos=1)
+        await self.client.publish('filter_state_on', '{}'.format(states['filter_state_on']), qos=1)
+        await self.client.publish('bubbel_state_on', '{}'.format(states['bubbel_state_on']), qos=1)
+        await self.client.publish('jacuzzi_current_temp', '{}'.format(states['jacuzzi_current_temp']), qos=1)
+        await self.client.publish('r_message', '{}'.format(states['r_message']), qos=1)
+
 
     def close_connection(self):
         self.client.close()
 
-    def start_connection(self):
+    async def start_connection(self):
         await self.client.connect()
 
-    async def main(self, n):
-        print('publish', n)
-        # If WiFi is down the following will pause for the duration.
-        await self.client.publish('result', '{}'.format(n), qos = 1)
-        n += 1
-        return "published info"
+
+

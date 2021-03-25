@@ -1,7 +1,7 @@
 import select
 from .UartHelper import UartConnection
 from .WebComponent import WebComponent
-from .MqttComp import MqttClass
+from .MqttComp import MqttClass, config
 import uasyncio as asyncio
 
 
@@ -13,17 +13,14 @@ class Main():
         self.mqtt = MqttClass()
 
     async def loop(self):
-        n = 0
-        self.mqtt.start_connection()
+        await self.mqtt.start_connection()
+        print("connected")
         # get UART data
         while True:
             uart_connection_task = asyncio.create_task(self.uart_interface.check_uart())
-            mqtt_publish_task = asyncio.create_task(self.mqtt.main(n))
-            #mqtt_result = await mqtt_publish_task
             current_uart_state = await uart_connection_task
-            print(current_uart_state)
-            #print(mqtt_result)
-            n += 1
+            asyncio.create_task(self.mqtt.publish_states(states=current_uart_state))
+
             await asyncio.sleep(1)
 
 
