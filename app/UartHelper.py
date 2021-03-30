@@ -15,13 +15,21 @@ class UartConnection():
         self.last_message_r = []
         self.last_message_x0b = []
 
-        # current states
+        # current jacuzzi states
         self.jacuzzi_current_temp = 0
+        self.jacuzzi_filter_state_str = ""
+
+        # Current remote states
         self.remote_bubbel_state_on = False
         self.remote_heater_state_on = False
         self.remote_filter_state_on = False
         self.remote_temp = 0
-        self.jacuzzi_filter_state_str = ""
+
+        # States to send to jacuzzi
+        self.send_bubble_state_on = False
+        self.send_heater_state_on = False
+        self.send_filter_state_on = False
+        self.send_set_temp = 0
 
         # init UART
         self.uart1_jacuzzi = UART(1, baudrate=9600, tx=14, rx=4, bits=8, stop=1, parity=None)
@@ -41,6 +49,24 @@ class UartConnection():
         status = self.return_status()
         return status
 
+    async def write_uart(self, command, state):
+        if command == "bubble":
+            if state == "on":
+                await self.set_bubbel_on()
+            elif state == "off":
+                await self.set_bubbel_off()
+        elif command == "heater":
+            if state == "on":
+                await self.set_heather_on()
+            elif state == "off":
+                await self.set_heather_off()
+        elif command == "filter":
+            if state == "on":
+                await self.set_filter_on()
+            elif state == "off":
+                await self.set_filter_off()
+        elif command == "set_temp":
+            await self.set_heating_temp(state)
 
     def de_init_uart(self):
         self.uart1_jacuzzi.deinit()
@@ -61,34 +87,35 @@ class UartConnection():
     def get_filter_state(self):
         return self.remote_filter_state_on
 
-    def set_bubbel_on(self):
+    async def set_bubbel_on(self):
         self.uart2_remote.write(bytearray(b'\xa5\x03\x01\xa9'))
         self.remote_bubbel_state_on = True
 
-    def set_filter_on(self):
+    async def set_filter_on(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x01\xa8'))
         self.remote_filter_state_on = True
 
-    def set_heather_on(self):
+    async def set_heather_on(self):
         self.remote_heater_state_on = True
 
-    def set_bubbel_off(self):
+    async def set_bubbel_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x00\xa8'))
         self.remote_bubbel_state_on = False
 
-    def set_filter_off(self):
+    async def set_filter_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x00\xa7'))
         self.remote_filter_state_on = False
 
-    def set_heather_off(self):
+    async def set_heather_off(self):
         self.remote_heater_state_on = False
 
-    def set_heating_temp(self, temp):
+    async def set_heating_temp(self, temp):
         # temp -> hex
         # Controle nr uitrekenen
         # bytestring van maken
         # sturen : self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x00\xa7'))
         pass
+
 
     def return_status(self):
         status = {'remote_heater_state_on': self.remote_heater_state_on,
@@ -100,7 +127,8 @@ class UartConnection():
                   'x07_message': self.last_message_x07,
                   'jacuzzi_filter_state_str': self.jacuzzi_filter_state_str,
                   'r_message': self.last_message_r,
-                  'x0b_message': self.last_message_x0b}
+                  'x0b_message': self.last_message_x0b
+                  }
         return status
 
     def split_message_to_array(self, message):
