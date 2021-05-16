@@ -32,20 +32,22 @@ class UartConnection():
         self.send_set_temp = 0
 
         # init UART
-        self.uart1_jacuzzi = UART(1, baudrate=9600, tx=14, rx=4, bits=8, stop=1, parity=None)
-        self.uart2_remote = UART(2, baudrate=9600, tx=15, rx=27, bits=8, stop=1, parity=None)
+        self.uart1_jacuzzi = UART(1, baudrate=9600, tx=23, rx=19, bits=8, stop=1, parity=None)
+        self.uart2_remote = UART(2, baudrate=9600, tx=18, rx=5, bits=8, stop=1, parity=None)
 
     async def check_uart(self):
         if self.uart2_remote.any():
             remote_buffer = self.uart2_remote.readline()
             self.process_message(remote_buffer, "remote")
-            self.uart1_jacuzzi.write(bytearray(remote_buffer))
+            #print(remote_buffer)
+            #self.uart1_jacuzzi.write(bytearray(remote_buffer))
 
         if self.uart1_jacuzzi.any():
             jacuzzi_buffer = self.uart1_jacuzzi.readline()
             self.process_message(jacuzzi_buffer, "jacuzzi")
             self.uart2_remote.write(bytearray(jacuzzi_buffer))
-
+            #print(jacuzzi_buffer)
+        
         status = self.return_status()
         return status
 
@@ -88,26 +90,23 @@ class UartConnection():
         return self.remote_filter_state_on
 
     async def set_bubbel_on(self):
-        self.uart2_remote.write(bytearray(b'\xa5\x03\x01\xa9'))
-        self.remote_bubbel_state_on = True
+        self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x01\xa9'))
 
     async def set_filter_on(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x01\xa8'))
-        self.remote_filter_state_on = True
 
     async def set_heather_on(self):
-        self.remote_heater_state_on = True
+        pass
+
+    async def set_heather_off(self):
+        pass
 
     async def set_bubbel_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x03\x00\xa8'))
-        self.remote_bubbel_state_on = False
 
     async def set_filter_off(self):
         self.uart1_jacuzzi.write(bytearray(b'\xa5\x02\x00\xa7'))
-        self.remote_filter_state_on = False
 
-    async def set_heather_off(self):
-        self.remote_heater_state_on = False
 
     async def set_heating_temp(self, temp):
         # temp -> hex
@@ -133,20 +132,20 @@ class UartConnection():
 
     def split_message_to_array(self, message):
         message_str = str(message)
-        msg = message_str.split("\'")
+        print("message is" + message_str)
+        fix_msg = message_str.replace(" ", "\x00")
+        print("fix_message is" + fix_msg)
+        msg = fix_msg.split("\'")
         main_msg = msg[1]
-        bytes = main_msg.split("\\")
-
-        # check nr of messages
-        # print(len(bytes))
+        bitjes = main_msg.split("\\")
         single_message = []
         messages = []
 
         i = 1
         x = 0
-        while i < len(bytes):
+        while i < len(bitjes):
 
-            single_message.append(bytes[i])
+            single_message.append(bitjes[i])
             x += 1
             i += 1
 
@@ -168,22 +167,30 @@ class UartConnection():
                 if message[1] == 'r':
                     sum_msg = 1
                     check_msg = 1
+                    hex_val2 = 'r'
                 else:
-                    hex_val1 = message[0].replace('x', '')
-                    hex_val2 = message[1].replace('x', '')
-                    hex_val3 = message[2].replace('x', '')
-                    hex_val4 = message[3].replace('x', '')
+                    hex_val1 = message[0][1:3]
+                    hex_val2 = message[1][1:3]
+                    #print(hex_val2)
+                    hex_val3 = message[2][1:3]
+                    hex_val4 = message[3][1:3]
                     try:
                         sum_msg = int(hex_val1, 16) + int(hex_val2, 16) + int(hex_val3, 16)
                         check_msg = int(hex_val4, 16)
                     except ValueError:
-                        print("failed to process message, message was : " + str(message))
+                        #fixing missing vars for temp on certain temps
+                        if message[1] == 'x06':
+                            print("calculating temp from control nr")
+                            temp = int(hex_val4, 16) - int(hex_val2, 16) - int(hex_val1, 16)
+                            hex_val3 = hex(temp)
+                        else:
+                            print("failed to process message, message was : " + str(message))
                         sum_msg=1
                         check_msg=1
 
                 # verify if message is complete
-                if sum_msg == check_msg:
-                    if message[1] == "x01":
+                if sum_msg == check_msg or hex_val2 == "06":
+                    if hex_val2 == "01":
                         if self.last_message_x01 != message:
                             self.last_message_x01 = message
                             if message[2] == "x00":
@@ -195,7 +202,7 @@ class UartConnection():
                             else:
                                 print(" unkown Heater state " + str(message) + str(sender))
                     # filter aan x02
-                    elif message[1] == "x02":
+                    elif hex_val2 == "02":
                         if self.last_message_x02 != message:
                             self.last_message_x02 = message
                             if message[2] == "x00":
@@ -208,19 +215,19 @@ class UartConnection():
                                 print(" unkown filter state " + str(message) + str(sender))
 
                     # bubbels aan x03
-                    elif message[1] == "x03":
-                        if self.last_message_x03 != message:
+                    elif hex_val2 == "03":
+                        #if self.last_message_x03 != message:
                             self.last_message_x03 = message
                             if message[2] == "x00":
-                                print(" Bubbels zijn uit " + str(sender))
+                                print(" Bubbels zijn uit " + str(message) + str(sender))
                                 self.remote_bubbel_state_on = False
                             elif message[2] == "x01":
                                 self.remote_bubbel_state_on = True
-                                print(" Bubbels zijn aan" + str(sender))
+                                print(" Bubbels zijn aan " + str(message) + str(sender))
                             else:
                                 print(" unkown bubbel state " + str(message) + str(sender))
-                    elif message[1] == "x04":
-                        if self.last_message_x04 != message:
+                    elif hex_val2 == "04":
+                        #if self.last_message_x04 != message:
                             self.last_message_x04 = message
                             temp_val = message[2].replace('x', '')
                             # maximum setting seems to be 31! Bug in Remote? Lie in specs?
@@ -228,41 +235,41 @@ class UartConnection():
                                 "The temprature on remote is set to : " + str(int(temp_val, 16)) + "   " + str(
                                     message) + str(sender))
                             self.remote_temp = int(temp_val, 16)
-                    elif message[1] == "x05":
-                        if self.last_message_x05 != message:
+                    elif hex_val2 == "05":
+                        #if self.last_message_x05 != message:
                             self.last_message_x05 = message
                             print("still unkown message : " + str(message) + str(sender))
                     # temp van jacuzzi x06
-                    elif message[1] == "x06":
-                        if self.last_message_x06 != message:
+                    elif hex_val2 == "06":
+                        #if self.last_message_x06 != message:
                             self.last_message_x06 = message
-                            temp_hex_jac = message[2].replace('x', '')
-                            temp_jac = ((int(temp_hex_jac, 16)) * 10) / 2
+                            temp_jac = ((int(hex_val3, 16)) * 10) / 2
+                            print(str(message))
                             print("The jacuzzi temp is : " + str(temp_jac) + " devide by 10 " + str(sender))
                             self.jacuzzi_current_temp = temp_jac
-                    elif message[1] == "x07":
-                        if self.last_message_x07 != message:
+                    elif hex_val2 == "07":
+                        #if self.last_message_x07 != message:
                             self.last_message_x07 = message
                             print("still unkown message (bit = x07): " + str(message) + str(sender))
-                    elif message[1] == "x08":
-                        if self.last_message_x08 != message:
+                    elif hex_val2 == "08":
+                        #if self.last_message_x08 != message:
                             self.last_message_x08 = message
                             if message[2] == "x00":
-                                print(" Filter is uit vanaf jacuzzi" + str(message) + str(sender))
+                                print(" Filter is uit vanaf jacuzzi " + str(message) + str(sender))
                                 self.jacuzzi_filter_state_str = "Filtering off in jacuzzi"
                             elif message[2] == "x03":
-                                print(" Filter is zonder error aan vanaf jacuzzi" + str(message) + str(sender))
+                                print(" Filter is zonder error aan vanaf jacuzzi " + str(message) + str(sender))
                                 self.jacuzzi_filter_state_str = "Filtering on, no errors"
                             else:
                                 print(" unkown filter state " + str(message) + str(sender))
                                 self.jacuzzi_filter_state_str = "Filter in unkown state"
                     elif message[1] == "r":
-                        if self.last_message_r != message:
+                        #if self.last_message_r != message:
                             self.last_message_r = message
                             print("still unkown message (bit = r): " + str(message) + str(sender))
 
-                    elif message[1] == "x0b":
-                        if self.last_message_x0b != message:
+                    elif hex_val2 == "0b":
+                        #if self.last_message_x0b != message:
                             self.last_message_x0b = message
                             print("still unkown message (bit = x0b): " + str(message) + str(sender))
 
@@ -271,3 +278,4 @@ class UartConnection():
                         print("bit 2 was:" + message[1])
                 else:
                     print("verify failed, mesages wrong " + str(message) + str(sender))
+

@@ -2,6 +2,8 @@ import select
 from .UartHelper import UartConnection
 from .MqttComp import MqttClass
 import uasyncio as asyncio
+from machine import Timer
+import utime
 
 class Main():
     def __init__(self):
@@ -35,6 +37,7 @@ class Main():
 
     async def loop(self):
         await self.mqtt.start_connection()
+
         # get UART data
         while True:
             # gather all info from classes
@@ -68,14 +71,16 @@ class Main():
                 self.last_bubble_state_on_current = current_uart_state['remote_bubbel_state_on']
                 self.last_bubble_state_on_remote = current_uart_state['remote_bubbel_state_on']
                 if current_uart_state['remote_bubbel_state_on']:
+                    print("remote sets bubbels on")
                     await self.uart_interface.set_bubbel_on()
                 else:
+                    print("remote sets bubbels off")
                     await self.uart_interface.set_bubbel_off()
 
             # Check Mqtt
             if self.last_heater_state_on_mqtt != self.mqtt.set_state_heater_on:
                 self.last_heater_state_on_current = self.mqtt.set_state_heater_on
-                self.last_heater_state_on_remote = self.mqtt.set_state_heater_on
+                self.last_heater_state_on_mqtt = self.mqtt.set_state_heater_on
                 if self.mqtt.set_state_heater_on:
                     await self.uart_interface.set_heather_on()
                 else:
@@ -93,15 +98,29 @@ class Main():
                 self.last_bubble_state_on_current = self.mqtt.set_state_bubble_on
                 self.last_bubble_state_on_mqtt = self.mqtt.set_state_bubble_on
                 if self.last_bubble_state_on_mqtt:
+                    print("mqtt sets bubbels on")
                     await self.uart_interface.set_bubbel_on()
                 else:
                     await self.uart_interface.set_bubbel_off()
+                    print("mqtt sets bubbels off")
 
+            # republishing current state of jacuzzi
+            if self.last_heater_state_on_current:
+                await self.uart_interface.set_heather_on()
+            else:
+                await self.uart_interface.set_heather_off()
 
-            print(self.last_heater_state_on_current)
-            print(self.last_filter_state_on_current)
-            print(self.last_bubble_state_on_current)
-            print(self.last_set_heater_temp_current)
+            if self.last_filter_state_on_current:
+                await self.uart_interface.set_heather_on()
+            else:
+                await self.uart_interface.set_heather_off()
+
+            if self.last_bubble_state_on_current:
+                await self.uart_interface.set_bubbel_on()
+                print("bubbels are on")
+            else:
+                await self.uart_interface.set_bubbel_off()
+                print("bubbels are off")
             await asyncio.sleep(1)
 
 
